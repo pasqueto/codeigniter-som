@@ -49,7 +49,7 @@ abstract class MY_Model extends CI_Model {
 
         if ( ! $query->row())
         {
-            throw new Exception('Entity not found', 404);
+            throw new Exception('Entity "'.get_called_class()." #$id\" not found", 404);
         }
 
         return self::_build_instance($query->row());
