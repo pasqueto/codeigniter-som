@@ -245,7 +245,7 @@ abstract class MY_Model extends CI_Model {
 
 	private function _update()
 	{
-		if ( ! $this->db->update(self::_table_name(), $this, array('id' => $this->id)))
+		if ( ! self::$_ci->db->update(self::_table_name(), $this, array('id' => $this->id)))
 		{
 			throw new Exception($this->db->error()['message'], $this->db->error()['code']);
 		}
@@ -253,7 +253,7 @@ abstract class MY_Model extends CI_Model {
 	
 	private function _insert()
 	{
-		if ( ! $this->db->insert(self::_table_name(), $this))
+		if ( ! self::$_ci->db->insert(self::_table_name(), $this))
 		{
 			throw new Exception($this->db->error()['message'], $this->db->error()['code']);
 		}
