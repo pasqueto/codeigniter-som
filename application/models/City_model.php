@@ -1,7 +1,13 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: renan
- * Date: 24/11/16
- * Time: 23:13
- */
+
+class City_model extends MY_Model {
+
+    public $name;
+
+    /**
+     * @cardinality has_many
+     * @class User_model
+     * @ref id_city
+     */
+    protected $users;
+}

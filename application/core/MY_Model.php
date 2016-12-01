@@ -15,6 +15,7 @@ abstract class MY_Model extends CI_Model {
 
     /**
 	 * Get a list of entities with or without pagination.
+     *
 	 * @param array $filters
 	 * @param string $order_by
 	 * @param bool $paged
@@ -39,6 +40,7 @@ abstract class MY_Model extends CI_Model {
 
     /**
      * Get an entity by your id.
+     *
      * @param int $id
      * @return object
      * @throws Exception
@@ -57,6 +59,7 @@ abstract class MY_Model extends CI_Model {
 
     /**
      * Count all entities.
+     *
      * @param array $filters
      * @param array $distinct
      */
@@ -76,6 +79,7 @@ abstract class MY_Model extends CI_Model {
 
     /**
      * Fill the entity with param passed by.
+     *
      * @param array $properties
      * @return object
      */
@@ -86,6 +90,7 @@ abstract class MY_Model extends CI_Model {
 
     /**
      * Delete an entity.
+     *
      * @throws Exception
      * @return object
      */
@@ -134,6 +139,7 @@ abstract class MY_Model extends CI_Model {
 
     /**
      * Build a result set with paginations links.
+     *
      * @param array $result_set
      * @param int $total
      * @param int $limit
@@ -187,6 +193,7 @@ abstract class MY_Model extends CI_Model {
 
     /**
      * Transform a list of stdClass to list of entity instances.
+     *
      * @param array $result_set
      * @return array
      */
@@ -204,6 +211,7 @@ abstract class MY_Model extends CI_Model {
 
     /**
      * Generates an instance of the class.
+     *
      * @param stdClass $properties
      * @return object
      */
@@ -219,6 +227,7 @@ abstract class MY_Model extends CI_Model {
 
     /**
      * Transform stdClass object to entity instance.
+     *
      * @param stdClass|array $properties
      * @param MY_Model $instance
      * @param bool $from_database
@@ -258,4 +267,65 @@ abstract class MY_Model extends CI_Model {
 			throw new Exception($this->db->error()['message'], $this->db->error()['code']);
 		}
 	}
+
+    /**
+     * __get magic
+     *
+     * @param string $name
+     * @return mixed
+     */
+    public function __get($name)
+    {
+        $r_class = new ReflectionClass(get_called_class());
+        $doc_params = $this->_get_doc_params($r_class->getProperty($name)->getDocComment());
+
+        if ( ! isset($doc_params['cardinality']) OR ! isset($doc_params['class']) OR ! isset($doc_params['ref']))
+        {
+            return NULL;
+        }
+
+        self::$_ci->load->model($doc_params['class']);
+
+        if ($doc_params['cardinality'] == 'has_many')
+        {
+            if ($this->id && ! $this->$name)
+            {
+                return $doc_params['class']::find([$doc_params['ref'] => $this->id]);
+            }
+            else
+            {
+                return array();
+            }
+        }
+        else if ($doc_params['cardinality'] == 'has_one')
+        {
+            if ($this->{$doc_params['ref']} && ! $this->$name)
+            {
+                return $doc_params['class']::get($this->{$doc_params['ref']});
+            }
+            else
+            {
+                return new $doc_params['class'];
+            }
+        }
+    }
+
+    /**
+     * Extract doc params from doc comment.
+     *
+     * @param string $doc_comment
+     * @return array
+     */
+    private function _get_doc_params($doc_comment)
+    {
+        preg_match_all('/@([^@*]+)\s+([^*\s]+)/', $doc_comment, $matches);
+
+        $params = array();
+        foreach ($matches[1] as $i => $param)
+        {
+            $params[$param] = $matches[2][$i];
+        }
+
+        return $params;
+    }
 }
