@@ -96,9 +96,9 @@ abstract class MY_Model extends CI_Model {
      */
     public function delete()
     {
-        if ( ! $this->db->delete(self::_table_name(), array('id' => $this->id)))
+        if ( ! self::$_ci->db->delete(self::_table_name(), array('id' => $this->id)))
         {
-            throw new Exception($this->db->error()['message'], $this->db->error()['code']);
+            throw new Exception(self::$_ci->db->error()['message'], self::$_ci->db->error()['code']);
         }
 
         $this->_is_persisted = FALSE;
@@ -120,7 +120,7 @@ abstract class MY_Model extends CI_Model {
         {
             $this->_insert();
             $this->_is_persisted = TRUE;
-            if ($this->db->insert_id()) $this->id = $this->db->insert_id();
+            if (self::$_ci->db->insert_id()) $this->id = self::$_ci->db->insert_id();
         }
 
         $this->_after_save();
@@ -130,11 +130,17 @@ abstract class MY_Model extends CI_Model {
 
     /**
      * Get the table name of entity.
+     * @param string $class_name
+     * @return string
      */
-    protected static function _table_name()
+    protected static function _table_name($class_name = NULL)
     {
-        $class_name = strtolower(get_called_class());
-        return plural(str_replace('_model', '', $class_name));
+        if ( ! $class_name)
+        {
+            $class_name = get_called_class();
+        }
+
+        return plural(str_replace('_model', '', strtolower($class_name)));
     }
 
     /**
@@ -197,13 +203,13 @@ abstract class MY_Model extends CI_Model {
      * @param array $result_set
      * @return array
      */
-    protected static function _build_result($result_set)
+    protected static function _build_result($result_set, $class_name = NULL)
     {
         $my_result = array();
 
         foreach ($result_set as $row)
         {
-            $my_result[] = self::_build_instance($row);
+            $my_result[] = self::_build_instance($row, $class_name);
         }
 
         return $my_result;
@@ -215,9 +221,13 @@ abstract class MY_Model extends CI_Model {
      * @param stdClass $properties
      * @return object
      */
-    protected static function _build_instance($properties)
+    protected static function _build_instance($properties, $class_name = NULL)
     {
-        $class_name = get_called_class();
+        if ( ! $class_name)
+        {
+            $class_name = get_called_class();
+        }
+
         return self::_set_properties($properties, new $class_name);
     }
 	
@@ -229,7 +239,7 @@ abstract class MY_Model extends CI_Model {
      * Transform stdClass object to entity instance.
      *
      * @param stdClass|array $properties
-     * @param MY_Model $instance
+     * @param object $instance
      * @param bool $from_database
      * @return object
      */
@@ -256,7 +266,7 @@ abstract class MY_Model extends CI_Model {
 	{
 		if ( ! self::$_ci->db->update(self::_table_name(), $this, array('id' => $this->id)))
 		{
-			throw new Exception($this->db->error()['message'], $this->db->error()['code']);
+			throw new Exception(self::$_ci->db->error()['message'], self::$_ci->db->error()['code']);
 		}
 	}
 	
@@ -264,7 +274,7 @@ abstract class MY_Model extends CI_Model {
 	{
 		if ( ! self::$_ci->db->insert(self::_table_name(), $this))
 		{
-			throw new Exception($this->db->error()['message'], $this->db->error()['code']);
+			throw new Exception(self::$_ci->db->error()['message'], self::$_ci->db->error()['code']);
 		}
 	}
 
@@ -276,10 +286,10 @@ abstract class MY_Model extends CI_Model {
      */
     public function __get($name)
     {
-        $r_class = new ReflectionClass(get_called_class());
-        $doc_params = $this->_get_doc_params($r_class->getProperty($name)->getDocComment());
+        $class = new ReflectionClass(get_called_class());
+        $doc_params = self::_doc_params($class->getProperty($name)->getDocComment());
 
-        if ( ! isset($doc_params['cardinality']) OR ! isset($doc_params['class']) OR ! isset($doc_params['ref']))
+        if ( ! isset($doc_params['cardinality']) OR ! isset($doc_params['class']))
         {
             return NULL;
         }
@@ -290,18 +300,42 @@ abstract class MY_Model extends CI_Model {
         {
             if ($this->id && ! $this->$name)
             {
-                return $doc_params['class']::find([$doc_params['ref'] => $this->id]);
+                $order = NULL;
+
+                if (isset($doc_params['order']))
+                {
+                    $order = $doc_params['order'];
+                }
+
+                if (isset($doc_params['table']))
+                {
+                    $t_ref = self::_table_name($doc_params['class']); // table_reference
+                    $r_ref = self::_foreign_property($doc_params['class']); // right_reference
+                    $s_ref = self::_foreign_property(); // self_reference
+
+                    return self::_build_result(
+                        self::$_ci->db->select("$t_ref.*")
+                            ->join($t_ref, "$t_ref.id = {$doc_params['table']}.$r_ref")
+                            ->where("{$doc_params['table']}.$s_ref", $this->id)
+                            ->order_by("$t_ref.$order")
+                            ->get($doc_params['table'])
+                            ->result(),
+                        $doc_params['class']);
+
+                }
+
+                return $doc_params['class']::find([self::_foreign_property() => $this->id], $order);
             }
             else
             {
                 return array();
             }
         }
-        else if ($doc_params['cardinality'] == 'has_one')
+        elseif ($doc_params['cardinality'] == 'has_one')
         {
-            if ($this->{$doc_params['ref']} && ! $this->$name)
+            if ($this->{self::_foreign_property($doc_params['class'])} && ! $this->$name)
             {
-                return $doc_params['class']::get($this->{$doc_params['ref']});
+                return $doc_params['class']::get($this->{self::_foreign_property($doc_params['class'])});
             }
             else
             {
@@ -316,7 +350,7 @@ abstract class MY_Model extends CI_Model {
      * @param string $doc_comment
      * @return array
      */
-    private function _get_doc_params($doc_comment)
+    private static function _doc_params($doc_comment)
     {
         preg_match_all('/@([^@*]+)\s+([^*\s]+)/', $doc_comment, $matches);
 
@@ -327,5 +361,21 @@ abstract class MY_Model extends CI_Model {
         }
 
         return $params;
+    }
+
+    /**
+     * Get foreign key from class.
+     *
+     * @param string|NULL $class_name
+     * @return string
+     */
+    private static function _foreign_property($class_name = NULL)
+    {
+        if ( ! $class_name)
+        {
+            $class_name = get_called_class();
+        }
+
+        return 'id_'.str_replace('_model', '', strtolower($class_name));
     }
 }

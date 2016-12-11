@@ -9,7 +9,14 @@ class User_model extends MY_Model {
     /**
      * @cardinality has_one
      * @class City_model
-     * @ref id_city
      */
     protected $city;
+
+    /**
+     * @cardinality has_many
+     * @class Role_model
+     * @table users_roles
+     * @order name
+     */
+    protected $roles;
 }
