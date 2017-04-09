@@ -300,15 +300,34 @@ abstract class MY_Model extends CI_Model {
         {
             if ($this->id && ! $this->$name)
             {
-                $order = NULL;
+                $order = 'id asc';
 
                 if (isset($doc_params['order']))
                 {
                     $order = $doc_params['order'];
                 }
 
-                if (isset($doc_params['table']))
+                $ref_class = new ReflectionClass($doc_params['class']);
+                $is_many_to_many = FALSE;
+
+                foreach ($ref_class->getProperties() as $ref_property)
                 {
+                    $ref_params = self::_doc_params($ref_property->getDocComment());
+
+                    if (isset($ref_params['class']) && $ref_params['class'] == get_called_class() &&
+                        isset($ref_params['cardinality']) && $ref_params['cardinality'] == 'has_many')
+                    {
+                        $is_many_to_many = TRUE;
+                    }
+                }
+
+                if ($is_many_to_many)
+                {
+                    if (! isset($doc_params['table']))
+                    {
+                        throw new Exception('Missing parameter "table" on many to many cardinality.');
+                    }
+
                     $t_ref = self::_table_name($doc_params['class']); // table_reference
                     $r_ref = self::_foreign_property($doc_params['class']); // right_reference
                     $s_ref = self::_foreign_property(); // self_reference
