@@ -129,160 +129,11 @@ abstract class MY_Model extends CI_Model {
     }
 
     /**
-     * Get the table name of entity.
-     * @param string $class_name
-     * @return string
-     */
-    protected static function _table_name($class_name = NULL)
-    {
-        if ( ! $class_name)
-        {
-            $class_name = get_called_class();
-        }
-
-        return plural(str_replace('_model', '', strtolower($class_name)));
-    }
-
-    /**
-     * Build a result set with paginations links.
-     *
-     * @param array $result_set
-     * @param int $total
-     * @param int $limit
-     * @param int $page
-     * @return array
-     */
-    protected static function _build_paged($result_set, $total, $limit, $page)
-    {
-        $my_result = array(
-            'total' => $total,
-            '_links' => [],
-            'items' => $result_set
-        );
-
-        $num_pages = $limit > 0 ? (int) ceil($total / $limit) - 1 : 0;
-
-        $params = self::$_ci->input->get();
-        $params['limit'] = $limit;
-
-        $params['offset'] = $page;
-        $links['self']['href'] = uri_string().'?'.http_build_query($params);
-
-        $params['offset'] = 0;
-        $links['first']['href'] = uri_string().'?'.http_build_query($params);
-
-        $params['offset'] = $page - 1;
-        $links['previous']['href'] = uri_string().'?'.http_build_query($params);
-
-        $params['offset'] = $page + 1;
-        $links['next']['href'] = uri_string().'?'.http_build_query($params);
-
-        $params['offset'] = $num_pages;
-        $links['last']['href'] = uri_string().'?'.http_build_query($params);
-
-        if ($page == 0 || $total <= $limit * $page)
-        {
-            unset($links['first']);
-            unset($links['previous']);
-        }
-
-        if($page >= $num_pages || $total <= $limit * $page + $limit)
-        {
-            unset($links['next']);
-            unset($links['last']);
-        }
-
-        $my_result['_links'] = $links;
-
-        return $my_result;
-    }
-
-    /**
-     * Transform a list of stdClass to list of entity instances.
-     *
-     * @param array $result_set
-     * @return array
-     */
-    protected static function _build_result($result_set, $class_name = NULL)
-    {
-        $my_result = array();
-
-        foreach ($result_set as $row)
-        {
-            $my_result[] = self::_build_instance($row, $class_name);
-        }
-
-        return $my_result;
-    }
-
-    /**
-     * Generates an instance of the class.
-     *
-     * @param stdClass $properties
-     * @return object
-     */
-    protected static function _build_instance($properties, $class_name = NULL)
-    {
-        if ( ! $class_name)
-        {
-            $class_name = get_called_class();
-        }
-
-        return self::_set_properties($properties, new $class_name);
-    }
-	
-	protected function _before_save() { }
-	
-	protected function _after_save() { }
-
-    /**
-     * Transform stdClass object to entity instance.
-     *
-     * @param stdClass|array $properties
-     * @param object $instance
-     * @param bool $from_database
-     * @return object
-     */
-    private static function _set_properties($properties, $instance, $from_database = TRUE)
-    {
-        if ($properties)
-        {
-            $properties = (object) $properties;
-
-            foreach (get_object_vars($instance) as $key => $val)
-            {
-                if (substr($key, 0, 1) === '_' || ! isset($properties->$key)) continue;
-
-                $instance->$key = $properties->$key;
-            }
-
-            if ($from_database) $instance->_is_persisted = TRUE;
-        }
-
-        return $instance;
-    }
-
-	private function _update()
-	{
-		if ( ! self::$_ci->db->update(self::_table_name(), $this, array('id' => $this->id)))
-		{
-			throw new Exception(self::$_ci->db->error()['message'], self::$_ci->db->error()['code']);
-		}
-	}
-	
-	private function _insert()
-	{
-		if ( ! self::$_ci->db->insert(self::_table_name(), $this))
-		{
-			throw new Exception(self::$_ci->db->error()['message'], self::$_ci->db->error()['code']);
-		}
-	}
-
-    /**
-     * __get magic
+     *  __get magic
      *
      * @param string $name
-     * @return mixed
+     * @return array|null
+     * @throws Exception
      */
     public function __get($name)
     {
@@ -361,6 +212,158 @@ abstract class MY_Model extends CI_Model {
                 return new $doc_params['class'];
             }
         }
+    }
+
+    /**
+     * Get the table name of entity.
+     * @param string $class_name
+     * @return string
+     */
+    protected static function _table_name($class_name = NULL)
+    {
+        if ( ! $class_name)
+        {
+            $class_name = get_called_class();
+        }
+
+        return plural(str_replace('_model', '', strtolower($class_name)));
+    }
+
+    /**
+     * Build a result set with paginations links.
+     *
+     * @param array $result_set
+     * @param int $total
+     * @param int $limit
+     * @param int $page
+     * @return array
+     */
+    protected static function _build_paged($result_set, $total, $limit, $page)
+    {
+        $my_result = array(
+            'total' => $total,
+            '_links' => [],
+            'items' => $result_set
+        );
+
+        $num_pages = $limit > 0 ? (int) ceil($total / $limit) - 1 : 0;
+
+        $params = self::$_ci->input->get();
+        $params['limit'] = $limit;
+
+        $params['offset'] = $page;
+        $links['self']['href'] = uri_string().'?'.http_build_query($params);
+
+        $params['offset'] = 0;
+        $links['first']['href'] = uri_string().'?'.http_build_query($params);
+
+        $params['offset'] = $page - 1;
+        $links['previous']['href'] = uri_string().'?'.http_build_query($params);
+
+        $params['offset'] = $page + 1;
+        $links['next']['href'] = uri_string().'?'.http_build_query($params);
+
+        $params['offset'] = $num_pages;
+        $links['last']['href'] = uri_string().'?'.http_build_query($params);
+
+        if ($page == 0 OR $total <= $limit * $page)
+        {
+            unset($links['first']);
+            unset($links['previous']);
+        }
+
+        if ($page >= $num_pages OR $total <= $limit * $page + $limit)
+        {
+            unset($links['next']);
+            unset($links['last']);
+        }
+
+        $my_result['_links'] = $links;
+
+        return $my_result;
+    }
+
+    /**
+     * Transform a list of stdClass to list of entity instances.
+     *
+     * @param array $result_set
+     * @param string $class_name
+     * @return array
+     */
+    protected static function _build_result($result_set, $class_name = NULL)
+    {
+        $my_result = array();
+
+        foreach ($result_set as $row)
+        {
+            $my_result[] = self::_build_instance($row, $class_name);
+        }
+
+        return $my_result;
+    }
+
+    /**
+     * Generates an instance of the class.
+     *
+     * @param stdClass $properties
+     * @param string $class_name
+     * @return object
+     */
+    protected static function _build_instance($properties, $class_name = NULL)
+    {
+        if ( ! $class_name)
+        {
+            $class_name = get_called_class();
+        }
+
+        return self::_set_properties($properties, new $class_name);
+    }
+	
+	protected function _before_save() { }
+	
+	protected function _after_save() { }
+
+	protected function _update()
+	{
+		if ( ! self::$_ci->db->update(self::_table_name(), $this, array('id' => $this->id)))
+		{
+			throw new Exception(self::$_ci->db->error()['message'], self::$_ci->db->error()['code']);
+		}
+	}
+	
+	protected function _insert()
+	{
+		if ( ! self::$_ci->db->insert(self::_table_name(), $this))
+		{
+			throw new Exception(self::$_ci->db->error()['message'], self::$_ci->db->error()['code']);
+		}
+	}
+
+    /**
+     * Transform stdClass object to entity instance.
+     *
+     * @param object|array $properties
+     * @param object $instance
+     * @param bool $from_database
+     * @return object
+     */
+    private static function _set_properties($properties, $instance, $from_database = TRUE)
+    {
+        if ($properties)
+        {
+            $properties = (object) $properties;
+
+            foreach (get_object_vars($instance) as $key => $val)
+            {
+                if (substr($key, 0, 1) === '_' OR ! isset($properties->$key)) continue;
+
+                $instance->$key = $properties->$key;
+            }
+
+            if ($from_database) $instance->_is_persisted = TRUE;
+        }
+
+        return $instance;
     }
 
     /**
