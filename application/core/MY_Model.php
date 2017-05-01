@@ -169,12 +169,13 @@ abstract class MY_Model extends CI_Model {
                         isset($ref_params['cardinality']) && $ref_params['cardinality'] == 'has_many')
                     {
                         $is_many_to_many = TRUE;
+                        break;
                     }
                 }
 
                 if ($is_many_to_many)
                 {
-                    if (! isset($doc_params['table']))
+                    if ( ! isset($doc_params['table']))
                     {
                         throw new Exception('Missing parameter "table" on many to many cardinality.');
                     }
@@ -226,7 +227,17 @@ abstract class MY_Model extends CI_Model {
             $class_name = get_called_class();
         }
 
-        return plural(str_replace('_model', '', strtolower($class_name)));
+        $class = new ReflectionClass($class_name);
+        $doc_params = self::_doc_params($class->getDocComment());
+
+        if (isset($doc_params['table']))
+        {
+            return $doc_params['table'];
+        }
+        else
+        {
+            return plural(str_replace('_model', '', strtolower($class_name)));
+        }
     }
 
     /**
@@ -398,6 +409,16 @@ abstract class MY_Model extends CI_Model {
             $class_name = get_called_class();
         }
 
-        return 'id_'.str_replace('_model', '', strtolower($class_name));
+        $class = new ReflectionClass($class_name);
+        $doc_params = self::_doc_params($class->getDocComment());
+
+        if (isset($doc_params['table']))
+        {
+            return 'id_'.singular($doc_params['table']);
+        }
+        else
+        {
+            return 'id_'.str_replace('_model', '', strtolower($class_name));
+        }
     }
 }
