@@ -13,6 +13,7 @@ abstract class MY_Model extends CI_Model {
         self::$_ci = &get_instance();
     }
 
+
     /**
 	 * Get a list of entities with or without pagination.
      *
@@ -38,6 +39,7 @@ abstract class MY_Model extends CI_Model {
 		return self::_build_paged($result, self::count($filters), $limit, $page);
 	}
 
+
     /**
      * Get an entity by your id.
      *
@@ -56,6 +58,7 @@ abstract class MY_Model extends CI_Model {
 
         return self::_build_instance($query->row());
     }
+
 
     /**
      * Count all entities.
@@ -77,6 +80,7 @@ abstract class MY_Model extends CI_Model {
         return self::$_ci->db->count_all_results(self::_table_name());
     }
 
+
     /**
      * Fill the entity with param passed by.
      *
@@ -87,6 +91,7 @@ abstract class MY_Model extends CI_Model {
     {
         return self::_set_properties($properties, $this, FALSE);
     }
+
 
     /**
      * Delete an entity.
@@ -104,6 +109,7 @@ abstract class MY_Model extends CI_Model {
         $this->_is_persisted = FALSE;
         return $this;
     }
+
 
     /**
      * Save entity.
@@ -127,6 +133,7 @@ abstract class MY_Model extends CI_Model {
 
         return $this;
     }
+
 
     /**
      *  __get magic
@@ -215,6 +222,7 @@ abstract class MY_Model extends CI_Model {
         }
     }
 
+
     /**
      * Get the table name of entity.
      * @param string $class_name
@@ -236,9 +244,11 @@ abstract class MY_Model extends CI_Model {
         }
         else
         {
+            self::$_ci->load->helper('inflector');
             return plural(str_replace('_model', '', strtolower($class_name)));
         }
     }
+
 
     /**
      * Build a result set with paginations links.
@@ -294,6 +304,7 @@ abstract class MY_Model extends CI_Model {
         return $my_result;
     }
 
+
     /**
      * Transform a list of stdClass to list of entity instances.
      *
@@ -313,6 +324,7 @@ abstract class MY_Model extends CI_Model {
         return $my_result;
     }
 
+
     /**
      * Generates an instance of the class.
      *
@@ -329,10 +341,13 @@ abstract class MY_Model extends CI_Model {
 
         return self::_set_properties($properties, new $class_name);
     }
-	
+
+
 	protected function _before_save() { }
-	
+
+
 	protected function _after_save() { }
+
 
 	protected function _update()
 	{
@@ -341,7 +356,8 @@ abstract class MY_Model extends CI_Model {
 			throw new Exception(self::$_ci->db->error()['message'], self::$_ci->db->error()['code']);
 		}
 	}
-	
+
+
 	protected function _insert()
 	{
 		if ( ! self::$_ci->db->insert(self::_table_name(), $this))
@@ -349,6 +365,7 @@ abstract class MY_Model extends CI_Model {
 			throw new Exception(self::$_ci->db->error()['message'], self::$_ci->db->error()['code']);
 		}
 	}
+
 
     /**
      * Transform stdClass object to entity instance.
@@ -377,6 +394,7 @@ abstract class MY_Model extends CI_Model {
         return $instance;
     }
 
+
     /**
      * Extract doc params from doc comment.
      *
@@ -396,6 +414,7 @@ abstract class MY_Model extends CI_Model {
         return $params;
     }
 
+
     /**
      * Get foreign key from class.
      *
@@ -414,6 +433,7 @@ abstract class MY_Model extends CI_Model {
 
         if (isset($doc_params['table']))
         {
+            self::$_ci->load->helper('inflector');
             return 'id_'.singular($doc_params['table']);
         }
         else
