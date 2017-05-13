@@ -128,12 +128,6 @@ public function index()
     // you can show which city the user id = 1 bellongs
     var_dump(User_model::get(1)->city);
     
-    // store a fresh user in database
-    $user = new User_model();
-    $user->name = 'Michelangelo';
-    $user->email = 'michelangelo@turtleninja.com';
-    $user->save();
-    
     // You can retrieve all users from database
     User_model::find();
     // You can retrieve all users from database where name starts with "R" ordered by name descending
@@ -144,6 +138,12 @@ public function index()
     User_model::find(['name like' => 'R%', 'age >=' => 18, 'is_deleted' => FALSE]);
     // paged? sure
     User_model::find(['name like' => 'R%', 'age >=' => 18, 'is_deleted' => FALSE], 'name asc', TRUE, 20, 0); // limit 20 offset 0
+
+    // store a fresh user in database
+    $user = new User_model();
+    $user->name = 'Michelangelo';
+    $user->email = 'michelangelo@turtleninja.com';
+    $user->save();
     
     // you can use the chain method too
     $user = new User_model();
