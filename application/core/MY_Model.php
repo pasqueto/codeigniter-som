@@ -24,19 +24,19 @@ abstract class MY_Model extends CI_Model {
 	 * @param int $page
 	 * @return array
 	 */
-	public static function find($filters = array(), $order_by = NULL, $paged = FALSE, $limit = 0, $page = 0)
+	public static function find($filters = array(), $order_by = NULL, $paged = FALSE, $limit = 0, $offset = 0)
 	{
 		if ($filters) self::$_ci->db->where($filters);
 		
 		if ($order_by) self::$_ci->db->order_by($order_by);
 		
-		$query = self::$_ci->db->get(self::_table_name(), $limit, ($limit * $page));
+		$query = self::$_ci->db->get(self::_table_name(), $limit, $offset);
 		
 		$result = self::_build_result($query->result());
 		
 		if ( ! $paged) return $result;
 		
-		return self::_build_paged($result, self::count($filters), $limit, $page);
+		return self::_build_paged($result, self::count($filters), $limit, $offset);
 	}
 
 
@@ -259,8 +259,10 @@ abstract class MY_Model extends CI_Model {
      * @param int $page
      * @return array
      */
-    protected static function _build_paged($result_set, $total, $limit, $page)
+    protected static function _build_paged($result_set, $total, $limit, $offset)
     {
+        self::$_ci->load->helper('url');
+
         $my_result = array(
             'total' => $total,
             '_links' => [],
@@ -272,28 +274,28 @@ abstract class MY_Model extends CI_Model {
         $params = self::$_ci->input->get();
         $params['limit'] = $limit;
 
-        $params['offset'] = $page;
+        $params['offset'] = $offset;
         $links['self']['href'] = uri_string().'?'.http_build_query($params);
 
         $params['offset'] = 0;
         $links['first']['href'] = uri_string().'?'.http_build_query($params);
 
-        $params['offset'] = $page - 1;
+        $params['offset'] = ($offset - $limit) > 0 ? ($offset - $limit) : 0;
         $links['previous']['href'] = uri_string().'?'.http_build_query($params);
 
-        $params['offset'] = $page + 1;
+        $params['offset'] = ($offset + $limit) > ($total - $limit) ? ($total - $limit) : ($offset + $limit);
         $links['next']['href'] = uri_string().'?'.http_build_query($params);
 
-        $params['offset'] = $num_pages;
+        $params['offset'] = $total - $limit;
         $links['last']['href'] = uri_string().'?'.http_build_query($params);
 
-        if ($page == 0 OR $total <= $limit * $page)
+        if ($offset == 0 OR $total <= $offset)
         {
             unset($links['first']);
             unset($links['previous']);
         }
 
-        if ($page >= $num_pages OR $total <= $limit * $page + $limit)
+        if ($offset >= ($total - $limit))
         {
             unset($links['next']);
             unset($links['last']);
