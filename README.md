@@ -4,7 +4,7 @@ Criei a classe afim de evitar a escrita e reescrita de métodos comuns de consul
 
 Através de uma convenção estabelecida para o banco de dados e modelos é possível trazer os registros do banco para objetos sem muito esforço =)
 
-Há ótimos orm's no mercado, mas queria algo simples, enxuto, que coubesse bem no codeigniter.
+Há ótimos orm's no mercado, mas queria algo simples e enxuto, que coubesse bem no codeigniter.
 
 ## Prerequisites
 
@@ -104,7 +104,7 @@ class City_model extends MY_Model {
 Mapeamos em um atributo protected via doc params que, um usuário `has_one` cidade e uma cidade `has_many` usuários. Para o tipo de relacionamento *has_many* de um atributo, é possível definir por qual campo será ordenado o array de entidades quando acessado, passando o parâmetro `@order`
 
 #### Mapping the relationship many to many
-// TODO: Documentar sobre o tipo de relacionamento many_to_many;
+// TODO: ...
 
 ## In Action
 
@@ -175,6 +175,74 @@ Goes on $this->db->where($filters)
 * $limit `int` `optional`default `0`
 * $offset `int` `optional` default `0`
 
+```php
+User_model::find();
+```
+
+```
+array (size=4)
+  0 => 
+    object(User_model)[24]
+      public 'name' => string 'Rafael' (length=6)
+      public 'email' => string 'rafael@turtleninja.com' (length=22)
+      public 'id_city' => string '1' (length=1)
+      protected 'city' => null
+      protected 'roles' => null
+      public 'id' => string '4' (length=1)
+      protected '_is_persisted' => boolean true
+  1 => 
+    object(User_model)[25]
+      public 'name' => string 'Michelangelo' (length=12)
+      public 'email' => string 'michelangelo@turtleninja.com' (length=28)
+      public 'id_city' => string '1' (length=1)
+      protected 'city' => null
+      protected 'roles' => null
+      public 'id' => string '5' (length=1)
+      protected '_is_persisted' => boolean true
+
+(...)
+```
+
+```php
+User_model::find([], NULL, TRUE, 2, 0);
+```
+
+```
+array (size=3)
+  'total' => int 4
+  '_links' => 
+    array (size=3)
+      'self' => 
+        array (size=1)
+          'href' => string '?limit=2&offset=0' (length=17)
+      'next' => 
+        array (size=1)
+          'href' => string '?limit=2&offset=2' (length=17)
+      'last' => 
+        array (size=1)
+          'href' => string '?limit=2&offset=2' (length=17)
+  'items' => 
+    array (size=2)
+      0 => 
+        object(User_model)[22]
+          public 'name' => string 'Rafael' (length=6)
+          public 'email' => string 'rafael@turtleninja.com' (length=22)
+          public 'id_city' => string '1' (length=1)
+          protected 'city' => null
+          protected 'roles' => null
+          public 'id' => string '4' (length=1)
+          protected '_is_persisted' => boolean true
+      1 => 
+        object(User_model)[23]
+          public 'name' => string 'Michelangelo' (length=12)
+          public 'email' => string 'michelangelo@turtleninja.com' (length=28)
+          public 'id_city' => string '1' (length=1)
+          protected 'city' => null
+          protected 'roles' => null
+          public 'id' => string '5' (length=1)
+          protected '_is_persisted' => boolean true
+```
+
 ### ::get($id)
 
 Retorna uma instancia da entidade pelo seu id.
@@ -182,7 +250,18 @@ Retorna uma instancia da entidade pelo seu id.
 * $id `int` `required`
 
 ```php
-User_model::get(1);
+User_model::get(4);
+```
+
+```
+object(User_model)[21]
+  public 'name' => string 'Rafael' (length=6)
+  public 'email' => string 'rafael@turtleninja.com' (length=22)
+  public 'id_city' => string '1' (length=1)
+  protected 'city' => null
+  protected 'roles' => null
+  public 'id' => string '4' (length=1)
+  protected '_is_persisted' => boolean true
 ```
 
 ### ::count($filters, $distinct)
@@ -239,4 +318,4 @@ $user->save() // update
 ```
 
 ## Extending
-// TODO: Documentar caso precise criar suas próprias consultas na model e usufruir do SOM. 
+// TODO: ... 
