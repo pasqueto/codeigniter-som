@@ -68,7 +68,7 @@ class City_model extends MY_Model {
 
 Mapeamos para a model todos os campos da tabela como atributos públicos. Atributos públicos da model serão salvos em sua tabela correspondente se os nomes dos atributos e colunas foram iguais.
 
-#### Mapping the relationship one to many
+#### one to many relationship
 
 Agora precisamos informar que tipo de relação nosso usuário tem com cidade. Nas duas tabelas apresentadas percebemos que o relacionemento é que o usuário pertence a uma cidade e uma cidade possui vários usuários.
 
@@ -103,7 +103,7 @@ class City_model extends MY_Model {
 
 Mapeamos em um atributo protected via doc params que, um usuário `has_one` cidade e uma cidade `has_many` usuários. Para o tipo de relacionamento *has_many* de um atributo, é possível definir por qual campo será ordenado o array de entidades quando acessado, passando o parâmetro `@order`
 
-#### Mapping the relationship many to many
+#### many to many relationship
 // TODO: ...
 
 ## In Action
