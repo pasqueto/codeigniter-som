@@ -1,23 +1,23 @@
 # Codeigniter SOM (*A simple O.R.M. do monstro*)
 
-Criei a classe afim de evitar a escrita e reescrita de métodos comuns de consulta a base, para cada model do projetos.
+I made this to avoid writing and rewriting common query methods for each model you have in your project.
 
-Através de uma convenção estabelecida para o banco de dados e models é possível trazer os registros do banco para objetos sem muito esforço =)
+Through a convention established between the database and your models is possible to fetch information from the database to your objects without effort. =)
 
-Há ótimos orm's no mercado, mas precisava de algo muito simples e enxuto e que servisse bem no codeigniter.
+There is a lot of great orms out there, but I built that, thinking to being very simple, light and fit well in the codeigniter.
 
 ## Prerequisites
 
-* [Codeigniter 3](https://codeigniter.com/) com a library database carregada;
+* [Codeigniter 3](https://codeigniter.com/) with the database library loaded;
 
 ### Database
 
-* Tabelas devem ser nomeadas no plural e em letras minúsculas;
-* Colunas devem ser nomeadas no singular e em letras minúsculas;
-* Chaves primárias devem ser nomeadas como `id`;
-* Chaves estranageiras devem ser nomeadas como `id_<nome-da-tabela-estrangeira>` no singular;
+* Tables should be named in plural and lower case;
+* Columns must be named in singular and lower case;
+* Primary keys must be named as `id`;
+* Foreign keys must be named as `id_<name_of_foreign_table>` in singular;
 
-Para ilustrar, segue um exemplo de como seria uma tabela de usuários seguindo a convenção:
+To illustrate that, here is an example how would looks like a table of users following the convention:
 
 Table `users`:
 ```
@@ -33,11 +33,11 @@ Table `users`:
 
 ## Installing
 
-Basta colocar a classe `MY_Model.php` em /application/core
+Just put the class `MY_Model.php` in */application/core*
 
 ### Mapping table / model
 
-Tendo como exemplo a tabela `users` acima, nossa model deve ser nomeada no singular e deve conter como atributos, os campos da tabela com exceção do campo id que é herdado da classe MY_Model, ex:
+Taking the `users` table as an example, our model must be named in the singular and must contains as yours attributes, the table fields that you want with exception of the *"id"* field, that is inherited from the MY_Model class. eg.:
 
 `/application/models/User_model.php`
 ```php
@@ -48,7 +48,7 @@ class User_model extends MY_Model {
 }
 ```
 
-A seguir, segue exemplo da tabela `cities` no qual users tem relação:
+Following is a sample of the table `cities` which an *user* is related with:
 
 ```
 +-------+------------------+------+-----+---------+----------------+
@@ -59,14 +59,14 @@ A seguir, segue exemplo da tabela `cities` no qual users tem relação:
 +-------+------------------+------+-----+---------+----------------+
 ```
 
-E sua model: `/application/model/City_model`
+And your model following the convention: `/application/model/City_model`
 ```php
 class City_model extends MY_Model {
     public $name;
 }
 ```
 
-Mapeamos para a model todos os campos da tabela como atributos públicos. Atributos públicos da model serão salvos em sua tabela correspondente se os nomes dos atributos e colunas foram iguais.
+We map to the model all the table fields we want as public attributes. Public attributes will be saved in your corresponding table if their names are *equals to the table fields*.
 
 #### One to many relationship
 
