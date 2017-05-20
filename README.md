@@ -70,9 +70,9 @@ We map to the model all the table fields we want as public attributes. Public at
 
 #### One to many relationship
 
-Agora precisamos informar que tipo de relação nosso usuário tem com cidade. Nas duas tabelas apresentadas percebemos que o usuário pertence a uma cidade e uma cidade possui vários usuários.
+Now we need to inform what kind of relation our user has with city. In the two samples above we realize that one user belongs a city and one city has many users, characterizing the type *one to many* relationship.
 
-Vamos informar as models sobre o relacionamento:
+Lets inform models about that kind of relationhip:
 
 `/application/models/User_model.php`
 ```php
@@ -101,13 +101,13 @@ class City_model extends MY_Model {
 }
 ```
 
-Mapeamos em um atributo protected via doc params que, um usuário `has_one` cidade e uma cidade `has_many` usuários. Para o tipo de relacionamento *has_many* de um atributo, é possível definir por qual campo será ordenado o array de entidades quando acessado, passando o parâmetro `@order`.
+We map on a protected attribute with *doc params* that one user `has_one` city and one city `has_many` users. It is possible to define by which field of the related table the result will be sorted when the attribute is accessed, informing `@order` in *doc param*.
 
 #### Many to many relationship
 
-No caso do mapeamento many to many, temos uma tabela adicional para guardar a relação entre duas entidades. Neste exemplo um usuário possui muitos papéis e um papel pode possuir muitos usuários.
+In the *many to many* relationship case , we have an additional table to store the relation between two entities. In this example one *user* has many *roles* and one *role* can be associate to many *users*.
 
-Segue abaixo o exemplo da tabela `roles`:
+Here is an example of the `roles` table:
 
 ```
 +-------+------------------+------+-----+---------+----------------+
@@ -118,7 +118,7 @@ Segue abaixo o exemplo da tabela `roles`:
 +-------+------------------+------+-----+---------+----------------+
 ```
 
-E a tabela adicional `users_roles` para mapaear o relacionemento entre essas duas entidades:
+And the additional table `users_roles` to map the relationship between these two entities (*user* and *role*):
 
 ```
 +---------+------------------+------+-----+---------+-------+
@@ -129,7 +129,7 @@ E a tabela adicional `users_roles` para mapaear o relacionemento entre essas dua
 +---------+------------------+------+-----+---------+-------+
 ```
 
-Para o mapeamento na model, adicionamos um atributo em User_model para referenciar Role_model na cardinalidade `has_many` e um atributo em Role_model `has_many` para referenciar User_model.
+For the model mapping, we add a attribute in *User_model* as cardinality `has_many` to reference *Role_model* and vice versa:
 
 `/application/models/User_model.php`
 ```php
@@ -167,11 +167,11 @@ class Role_model extends MY_Model {
 }
 ```
 
-O doc param `@table` é necessário aqui para informar a tabela adicional que irá guardar a relação many to many entre usuário e papel.
+The *doc param* `@table` is necessary in this case, to inform which additional table will store the *many to many* relationship between *user* and *role*.
 
 ## In Action
 
-Uma vez mapeado suas models, podemos acessar/salvar os atributos do objeto na base de dados sem esforço.
+Once mapped your models, we can easily save/fetch objects from database:
 
 `application/controllers/Welcome.php`
 ```php
@@ -229,7 +229,7 @@ public function index()
 
 ### ::find($filters, $order_by, $paged, $limit, $offset)
 
-Retorna um array de entidades de acordo com os parâmetros passados.
+Returns an array of instances according passed params.
 
 * $filters `Array` `optional` default `array()`  
 Goes on $this->db->where($filters)
@@ -266,6 +266,7 @@ array (size=4)
 (...)
 ```
 
+*paged result:*
 ```php
 User_model::find([], NULL, TRUE, 2, 0);
 ```
@@ -308,7 +309,7 @@ array (size=3)
 
 ### ::get($id)
 
-Retorna uma instancia da entidade pelo seu id.
+Returns an entity instance by your id.
 
 * $id `int` `required`
 
@@ -329,7 +330,7 @@ object(User_model)[21]
 
 ### ::count($filters, $distinct)
 
-Retorna um inteiro de quantos registros existem na tabela de acordo com os parâmetros passados.
+Returns an integer of how many rows exists in table according passed params.
 
 * $filters `Array` `optional` default `array()`
 * $distinct `Array` `optional` default `array()`
@@ -341,7 +342,7 @@ User_model::count(['name' => 'Rafael']) //1
 
 ### ->fill($properties)
 
-Preenche uma entidade com os valores passados por parâmetro. Esse método deve receber um array no formato chave => valor, onde o nome da chave, seja igual ao atributo do objeto que deseja alterar o valor.
+Fill the object with values passed by param. This method receive an array (key => value format) where the *key must match with the name of object attributes*.
 
 * $properties `Array` `required`
 
@@ -355,7 +356,7 @@ $user->fill([
 
 ### ->delete()
 
-Remove uma entidade do banco de dados.
+Removes the object from database.
 
 ```php
 User_model::get(1)->delete(); // or
@@ -366,7 +367,7 @@ $user->delete();
 
 ### ->save()
 
-Salva uma entidade no banco de dados.
+Saves the object on database.
 
 ```php
 $user = new User_model();
