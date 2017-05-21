@@ -13,15 +13,14 @@ abstract class MY_Model extends CI_Model {
         self::$_ci = &get_instance();
     }
 
-
     /**
-	 * Get a list of entities with or without pagination.
+	 * Get a list of instances paged or not.
      *
 	 * @param array $filters
 	 * @param string $order_by
 	 * @param bool $paged
 	 * @param int $limit
-	 * @param int $page
+	 * @param int $offset
 	 * @return array
 	 */
 	public static function find($filters = array(), $order_by = NULL, $paged = FALSE, $limit = 0, $offset = 0)
@@ -36,12 +35,11 @@ abstract class MY_Model extends CI_Model {
 		
 		if ( ! $paged) return $result;
 		
-		return self::_build_paged($result, self::count($filters), $limit, $offset);
+		return self::_build_paged_result($result, self::count($filters), $limit, $offset);
 	}
 
-
     /**
-     * Get an entity by your id.
+     * Get an entity instance by your id.
      *
      * @param int $id
      * @return object
@@ -58,7 +56,6 @@ abstract class MY_Model extends CI_Model {
 
         return self::_build_instance($query->row());
     }
-
 
     /**
      * Count all entities.
@@ -80,9 +77,8 @@ abstract class MY_Model extends CI_Model {
         return self::$_ci->db->count_all_results(self::_table_name());
     }
 
-
     /**
-     * Fill the entity with param passed by.
+     * Fill the entity.
      *
      * @param array $properties
      * @return object
@@ -92,9 +88,8 @@ abstract class MY_Model extends CI_Model {
         return self::_set_properties($properties, $this, FALSE);
     }
 
-
     /**
-     * Delete an entity.
+     * Delete the entity.
      *
      * @throws Exception
      * @return object
@@ -110,9 +105,8 @@ abstract class MY_Model extends CI_Model {
         return $this;
     }
 
-
     /**
-     * Save entity.
+     * Save the entity.
      */
     public function save()
     {
@@ -134,97 +128,39 @@ abstract class MY_Model extends CI_Model {
         return $this;
     }
 
-
     /**
-     *  __get magic
+     *  __get magic.
      *
-     * @param string $name
+     * @param string $property
      * @return array|null
      * @throws Exception
      */
-    public function __get($name)
+    public function __get($property)
     {
         $class = new ReflectionClass(get_called_class());
-        $doc_params = self::_doc_params($class->getProperty($name)->getDocComment());
+        $doc_params = self::_doc_params($class->getProperty($property)->getDocComment());
 
         if ( ! isset($doc_params['cardinality']) OR ! isset($doc_params['class']))
         {
             return NULL;
         }
 
-        self::$_ci->load->model($doc_params['class']);
-
         if ($doc_params['cardinality'] == 'has_many')
         {
-            if ($this->id && ! $this->$name)
-            {
-                $order = 'id asc';
-
-                if (isset($doc_params['order']))
-                {
-                    $order = $doc_params['order'];
-                }
-
-                $ref_class = new ReflectionClass($doc_params['class']);
-                $is_many_to_many = FALSE;
-
-                foreach ($ref_class->getProperties() as $ref_property)
-                {
-                    $ref_params = self::_doc_params($ref_property->getDocComment());
-
-                    if (isset($ref_params['class']) && $ref_params['class'] == get_called_class() &&
-                        isset($ref_params['cardinality']) && $ref_params['cardinality'] == 'has_many')
-                    {
-                        $is_many_to_many = TRUE;
-                        break;
-                    }
-                }
-
-                if ($is_many_to_many)
-                {
-                    if ( ! isset($doc_params['table']))
-                    {
-                        throw new Exception('Missing parameter "table" on many to many cardinality.');
-                    }
-
-                    $t_ref = self::_table_name($doc_params['class']); // table_reference
-                    $r_ref = self::_foreign_property($doc_params['class']); // right_reference
-                    $s_ref = self::_foreign_property(); // self_reference
-
-                    return self::_build_result(
-                        self::$_ci->db->select("$t_ref.*")
-                            ->join($t_ref, "$t_ref.id = {$doc_params['table']}.$r_ref")
-                            ->where("{$doc_params['table']}.$s_ref", $this->id)
-                            ->order_by("$t_ref.$order")
-                            ->get($doc_params['table'])
-                            ->result(),
-                        $doc_params['class']);
-
-                }
-
-                return $doc_params['class']::find([self::_foreign_property() => $this->id], $order);
-            }
-            else
-            {
-                return array();
-            }
+            $this->$property = $this->_has_many($property, $doc_params);
         }
-        elseif ($doc_params['cardinality'] == 'has_one')
+
+        if ($doc_params['cardinality'] == 'has_one')
         {
-            if ($this->{self::_foreign_property($doc_params['class'])} && ! $this->$name)
-            {
-                return $doc_params['class']::get($this->{self::_foreign_property($doc_params['class'])});
-            }
-            else
-            {
-                return new $doc_params['class'];
-            }
+            $this->$property = $this->_belongs_to($property, $doc_params);
         }
-    }
 
+        return $this->$property;
+    }
 
     /**
      * Get the table name of entity.
+     *
      * @param string $class_name
      * @return string
      */
@@ -238,17 +174,12 @@ abstract class MY_Model extends CI_Model {
         $class = new ReflectionClass($class_name);
         $doc_params = self::_doc_params($class->getDocComment());
 
-        if (isset($doc_params['table']))
-        {
-            return $doc_params['table'];
-        }
-        else
-        {
-            self::$_ci->load->helper('inflector');
-            return plural(str_replace('_model', '', strtolower($class_name)));
-        }
+        if (isset($doc_params['table'])) return $doc_params['table'];
+        
+        self::$_ci->load->helper('inflector');
+        return plural(str_replace('_model', '', strtolower($class_name)));
+        
     }
-
 
     /**
      * Build a result set with paginations links.
@@ -256,10 +187,10 @@ abstract class MY_Model extends CI_Model {
      * @param array $result_set
      * @param int $total
      * @param int $limit
-     * @param int $page
+     * @param int $offset
      * @return array
      */
-    protected static function _build_paged($result_set, $total, $limit, $offset)
+    protected static function _build_paged_result($result_set, $total, $limit, $offset)
     {
         self::$_ci->load->helper('url');
 
@@ -268,8 +199,6 @@ abstract class MY_Model extends CI_Model {
             '_links' => [],
             'items' => $result_set
         );
-
-        $num_pages = $limit > 0 ? (int) ceil($total / $limit) - 1 : 0;
 
         $params = self::$_ci->input->get();
         $params['limit'] = $limit;
@@ -306,9 +235,8 @@ abstract class MY_Model extends CI_Model {
         return $my_result;
     }
 
-
     /**
-     * Transform a list of stdClass to list of entity instances.
+     * Transform a list of stdClass to a list of entity instances.
      *
      * @param array $result_set
      * @param string $class_name
@@ -317,7 +245,6 @@ abstract class MY_Model extends CI_Model {
     protected static function _build_result($result_set, $class_name = NULL)
     {
         $my_result = array();
-
         foreach ($result_set as $row)
         {
             $my_result[] = self::_build_instance($row, $class_name);
@@ -325,7 +252,6 @@ abstract class MY_Model extends CI_Model {
 
         return $my_result;
     }
-
 
     /**
      * Generates an instance of the class.
@@ -344,12 +270,15 @@ abstract class MY_Model extends CI_Model {
         return self::_set_properties($properties, new $class_name);
     }
 
-
+    /**
+     * Called before save the entity.
+     */
 	protected function _before_save() { }
 
-
+    /**
+     * Called after save the entity.
+     */
 	protected function _after_save() { }
-
 
 	protected function _update()
 	{
@@ -359,7 +288,6 @@ abstract class MY_Model extends CI_Model {
 		}
 	}
 
-
 	protected function _insert()
 	{
 		if ( ! self::$_ci->db->insert(self::_table_name(), $this))
@@ -368,6 +296,105 @@ abstract class MY_Model extends CI_Model {
 		}
 	}
 
+    /**
+     * Resolves "has_one" relationship type.
+     *
+     * @param $property
+     * @param Array $doc_params
+     * @return mixed
+     */
+    private function _belongs_to($property, Array $doc_params)
+    {
+        $class_name = $doc_params['class'];
+        $foreign_property = self::_foreign_property($class_name);
+
+        if ($this->$property && $this->$property->_is_persisted) 
+        {
+            return $this->$property;   
+        }
+        
+        if ($this->$foreign_property && ! $this->$property)
+        {
+            self::$_ci->load->model($class_name);
+            return $class_name::get($this->$foreign_property);
+        }
+        
+        return new $class_name;
+    }
+
+    /**
+     * Resolves "has_many" relationship type.
+     *
+     * @param $property
+     * @param array $doc_params
+     * @return array|null
+     * @throws Exception
+     */
+    private function _has_many($property, Array $doc_params)
+    {
+        if ($this->$property) return $this->$property;
+
+        if ( ! $this->id && ! $this->$property) return array();
+        
+        $class_name = $doc_params['class'];
+        $order = 'id asc';
+
+        if (isset($doc_params['order']))
+        {
+            $order = $doc_params['order'];
+        }
+
+        self::$_ci->load->model($class_name);
+
+        if ($this->_is_many_to_many($class_name))
+        {
+            if ( ! isset($doc_params['table']))
+            {
+                throw new Exception('Missing parameter "table" on many to many cardinality.');
+            }
+
+            $t_ref = self::_table_name($class_name); // table_reference
+            $r_ref = self::_foreign_property($class_name); // right_reference
+            $s_ref = self::_foreign_property(); // self_reference
+
+            return self::_build_result(
+                self::$_ci->db->select("$t_ref.*")
+                    ->join($t_ref, "$t_ref.id = {$doc_params['table']}.$r_ref")
+                    ->where("{$doc_params['table']}.$s_ref", $this->id)
+                    ->order_by("$t_ref.$order")
+                    ->get($doc_params['table'])
+                    ->result(),
+                $class_name);
+        }
+
+        return $class_name::find([self::_foreign_property() => $this->id], $order);        
+    }
+
+    /**
+     * Checks if it is a many to many relationship type.
+     *
+     * @param $class_name
+     * @return bool
+     */
+    private function _is_many_to_many($class_name)
+    {
+        $class = new ReflectionClass($class_name);
+        $is_many_to_many = FALSE;
+
+        foreach ($class->getProperties() as $property)
+        {
+            $doc_params = self::_doc_params($property->getDocComment());
+
+            if (isset($doc_params['class']) && $doc_params['class'] == get_called_class() &&
+                isset($doc_params['cardinality']) && $doc_params['cardinality'] == 'has_many')
+            {
+                $is_many_to_many = TRUE;
+                break;
+            }
+        }
+
+        return $is_many_to_many;
+    }
 
     /**
      * Transform stdClass object to entity instance.
@@ -396,7 +423,6 @@ abstract class MY_Model extends CI_Model {
         return $instance;
     }
 
-
     /**
      * Extract doc params from doc comment.
      *
@@ -415,7 +441,6 @@ abstract class MY_Model extends CI_Model {
 
         return $params;
     }
-
 
     /**
      * Get foreign key from class.
@@ -438,9 +463,7 @@ abstract class MY_Model extends CI_Model {
             self::$_ci->load->helper('inflector');
             return 'id_'.singular($doc_params['table']);
         }
-        else
-        {
-            return 'id_'.str_replace('_model', '', strtolower($class_name));
-        }
+        
+        return 'id_'.str_replace('_model', '', strtolower($class_name));
     }
 }
