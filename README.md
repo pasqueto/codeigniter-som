@@ -266,7 +266,7 @@ array (size=4)
 (...)
 ```
 
-*paged result:*
+paged result:
 ```php
 User_model::find([], NULL, TRUE, 2, 0);
 ```
@@ -382,4 +382,111 @@ $user->save() // update
 ```
 
 ## Extending
-// TODO: ... 
+
+If you need to create your own queries and still use the `codeigiter-som` resources, like `fill` and `save` to your object, you can pass the result to these methods:
+
+### ::_build_result($result_set)
+
+Transforms an array of stdClass to a list of instances of called class.
+
+* $result_set `Array` `required`
+
+`application/models/User_model.php`
+```php
+class User_model extends MY_Model {
+
+    (...)
+
+    public static function get_with_where_joins()
+    {
+        $query = parent::$_ci->db->select('u.*')
+            ->join('cities c', 'u.id_city = c.id')
+            ->join('users_roles r', 'r.id_user = u.id')
+            ->where(array(
+                'r.id_role !=' => Role_model::MASTER,
+                'u.age >=' => 18,
+                'c.state' => 'CA' 
+            ))
+            ->group_by('u.id')
+            ->get(parent::_table_name().' u');
+
+        return parent::_build_result($query->result());
+    }
+```
+
+### ::_build_paged_result($result_set, $total, $limit, $offset)
+
+Transforms an array of stdClass to a paged list of instances of called class.
+
+* $result_set `Array` `required`
+* $total `int` `required`
+* $limit `int` `required`
+* $offset `int` `required`
+
+`application/models/User_model.php`
+```php
+class User_model extends MY_Model {
+
+    (...)
+
+    public static function get_with_many_joins_paged($per_page, $offset)
+    {
+        parent::$_ci->db->select('u.*')
+            ->from(parent::_table_name().' u')
+            ->join('cities c', 'u.id_city = c.id')
+            ->join('users_roles r', 'r.id_user = u.id')
+            ->where(array(
+                'r.id_role !=' => Role_model::MASTER,
+                'u.age >=' => 18,
+                'c.state' => 'CA' 
+            ))
+            ->group_by('u.id');
+        
+        $total = parent::$_ci->db->count_all_results('', FALSE);
+        $query = parent::$_ci->db->get('', $per_page, $offset);
+
+        return parent::_build_paged_result($query->result(), $total, 
+            $per_page, $offset);
+    }
+```
+
+**Note:** You can use the methods above if you fetch results using `result()` or `result_array()` from [database library](https://www.codeigniter.com/user_guide/database/results.html#result-arrays).
+If you fetch result using `row()` or `row_array()` you should use the method bellow.
+
+### ::_build_instance($properties)
+
+Transforms a generic object or array(key => value) to instance of the class.
+
+* $properties `Array` | `object` `required`
+
+`application/models/User_model.php`
+```php
+class User_model extends MY_Model {
+
+    (...)
+
+    public static function get_first_with_where_joins()
+    {
+        $query = parent::$_ci->db->select('u.*')
+            ->join('cities c', 'u.id_city = c.id')
+            ->join('users_roles r', 'r.id_user = u.id')
+            ->where(array(
+                'r.id_role !=' => Role_model::MASTER,
+                'u.age >=' => 18,
+                'c.state' => 'CA' 
+            ))
+            ->group_by('u.id')
+            ->get(parent::_table_name().' u', 1);
+
+        return parent::_build_instance($query->row());
+    }
+```
+
+### ->before_save()
+
+This method is called before save the object on database. You can implement it in your model to do whatever you want.
+
+### ->after_save()
+
+This method is called after save the object on database. You can implement it in your model to do whatever you want.
+
